@@ -3,76 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Timer & Tasks</title>
+    <title>FocusFlow — Open Source Productivity Suite</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: #1e293b; padding: 2rem; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
-        h1 { font-size: 1.5rem; margin-bottom: 1rem; color: #38bdf8; }
-        .timer { font-size: 4rem; font-weight: bold; margin: 1rem 0; font-variant-numeric: tabular-nums; }
-        .buttons { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; }
-        button { background: #38bdf8; color: #0f172a; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #7dd3fc; }
-        button.secondary { background: #334155; color: #f8fafc; }
-        button.secondary:hover { background: #475569; }
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #38bdf8; --text: #f8fafc; --muted: #94a3b8; --border: #334155; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 1rem; }
+        .container { background: var(--card); padding: 2rem; border-radius: 16px; width: 100%; max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); text-align: center; border: 1px solid var(--border); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.25rem; margin: 0; color: var(--primary); }
+        .stats { font-size: 0.85rem; color: var(--muted); background: var(--bg); padding: 0.3rem 0.7rem; border-radius: 99px; }
+        .modes { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 1rem; }
+        .mode-btn { background: var(--bg); color: var(--muted); border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+        .mode-btn.active { background: var(--primary); color: var(--bg); font-weight: bold; border-color: var(--primary); }
+        .timer { font-size: 4.5rem; font-weight: 800; margin: 1rem 0; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+        .controls { display: flex; gap: 0.6rem; justify-content: center; margin-bottom: 1.8rem; }
+        button.action { background: var(--primary); color: var(--bg); border: none; padding: 0.7rem 1.4rem; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+        button.secondary { background: var(--border); color: var(--text); }
         .todo-input { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-        input { flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
-        ul { list-style: none; padding: 0; text-align: left; }
-        li { background: #0f172a; padding: 0.6rem 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        li.done { text-decoration: line-through; opacity: 0.5; }
+        input { flex: 1; padding: 0.7rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: white; outline: none; }
+        input:focus { border-color: var(--primary); }
+        ul { list-style: none; padding: 0; margin: 0; text-align: left; max-height: 220px; overflow-y: auto; }
+        li { background: var(--bg); padding: 0.7rem 0.9rem; border-radius: 8px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+        li span { cursor: pointer; flex: 1; }
+        li.done span { text-decoration: line-through; opacity: 0.5; }
+        .del-btn { background: transparent; color: #ef4444; border: none; cursor: pointer; font-weight: bold; padding: 0.2rem 0.5rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Focus Timer</h1>
+        <div class="header">
+            <h1>FocusFlow v2.0</h1>
+            <div class="stats">Sessions: <strong id="sessionCount">0</strong></div>
+        </div>
+        <div class="modes">
+            <button class="mode-btn active" onclick="setMode(25, this)">Focus (25m)</button>
+            <button class="mode-btn" onclick="setMode(5, this)">Short Break (5m)</button>
+            <button class="mode-btn" onclick="setMode(15, this)">Long Break (15m)</button>
+        </div>
         <div class="timer" id="display">25:00</div>
-        <div class="buttons">
-            <button onclick="startTimer()">Start</button>
-            <button class="secondary" onclick="pauseTimer()">Pause</button>
-            <button class="secondary" onclick="resetTimer()">Reset</button>
+        <div class="controls">
+            <button class="action" onclick="startTimer()">Start</button>
+            <button class="action secondary" onclick="pauseTimer()">Pause</button>
+            <button class="action secondary" onclick="resetTimer()">Reset</button>
         </div>
         <div class="todo-input">
-            <input type="text" id="taskInput" placeholder="Add a new task...">
-            <button onclick="addTask()">+</button>
+            <input type="text" id="taskInput" placeholder="Add a task (press Enter)..." onkeypress="if(event.key==='Enter') addTask()">
+            <button class="action" onclick="addTask()">+</button>
         </div>
         <ul id="taskList"></ul>
     </div>
 
     <script>
-        let time = 25 * 60;
+        let currentMinutes = 25;
+        let time = currentMinutes * 60;
         let interval = null;
+        let sessions = parseInt(localStorage.getItem('ff_sessions') || '0');
+        let tasks = JSON.parse(localStorage.getItem('ff_tasks') || '[]');
+
+        document.getElementById('sessionCount').textContent = sessions;
+
+        function playBeep() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, ctx.currentTime);
+            osc.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
+        }
 
         function updateDisplay() {
             const mins = Math.floor(time / 60).toString().padStart(2, '0');
             const secs = (time % 60).toString().padStart(2, '0');
             document.getElementById('display').textContent = `${mins}:${secs}`;
+            document.title = `${mins}:${secs} — FocusFlow`;
+        }
+
+        function setMode(mins, btn) {
+            pauseTimer();
+            currentMinutes = mins;
+            time = mins * 60;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateDisplay();
         }
 
         function startTimer() {
             if (interval) return;
             interval = setInterval(() => {
-                if (time > 0) {
-                    time--;
-                    updateDisplay();
-                } else {
+                if (time > 0) { time--; updateDisplay(); }
+                else {
                     clearInterval(interval);
                     interval = null;
-                    alert("Time is up! Take a short break.");
+                    playBeep();
+                    if (currentMinutes === 25) {
+                        sessions++;
+                        localStorage.setItem('ff_sessions', sessions);
+                        document.getElementById('sessionCount').textContent = sessions;
+                    }
+                    alert("Session complete!");
                 }
             }, 1000);
         }
 
         function pauseTimer() { clearInterval(interval); interval = null; }
-        function resetTimer() { pauseTimer(); time = 25 * 60; updateDisplay(); }
+        function resetTimer() { pauseTimer(); time = currentMinutes * 60; updateDisplay(); }
+
+        function saveAndRenderTasks() {
+            localStorage.setItem('ff_tasks', JSON.stringify(tasks));
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            tasks.forEach((t, i) => {
+                const li = document.createElement('li');
+                if (t.done) li.classList.add('done');
+                li.innerHTML = `<span onclick="toggleTask(${i})">${t.text}</span><button class="del-btn" onclick="deleteTask(${i})">✕</button>`;
+                list.appendChild(li);
+            });
+        }
 
         function addTask() {
             const input = document.getElementById('taskInput');
             if (!input.value.trim()) return;
-            const li = document.createElement('li');
-            li.textContent = input.value;
-            li.onclick = () => li.classList.toggle('done');
-            document.getElementById('taskList').appendChild(li);
+            tasks.push({ text: input.value.trim(), done: false });
             input.value = '';
+            saveAndRenderTasks();
         }
+
+        function toggleTask(i) { tasks[i].done = !tasks[i].done; saveAndRenderTasks(); }
+        function deleteTask(i) { tasks.splice(i, 1); saveAndRenderTasks(); }
+
+        saveAndRenderTasks();
     </script>
 </body>
 </html>
