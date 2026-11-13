@@ -1,374 +1,966 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FocusFlow AI — Open-Source Deep Work Suite</title>
-    <style>
-        :root {
-            --bg: radial-gradient(circle at 15% 15%, #1e1b4b, #0f172a 55%, #020617);
-            --card: rgba(30, 41, 59, 0.72);
-            --primary: #38bdf8;
-            --accent: #a855f7;
-            --text: #f8fafc;
-            --muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.12);
-            --surface: rgba(15, 23, 42, 0.7);
-        }
-        body.light {
-            --bg: radial-gradient(circle at 15% 15%, #dbeafe, #f8fafc 60%, #e2e8f0);
-            --card: rgba(255, 255, 255, 0.88);
-            --primary: #0284c7;
-            --accent: #7e22ce;
-            --text: #0f172a;
-            --muted: #475569;
-            --border: rgba(15, 23, 42, 0.12);
-            --surface: rgba(241, 245, 249, 0.9);
-        }
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 1rem;
-            transition: all 0.35s ease;
-        }
-        .app-shell {
-            background: var(--card);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 1.8rem;
-            border-radius: 26px;
-            width: 100%;
-            max-width: 520px;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--border);
-        }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; }
-        .logo {
-            font-weight: 800;
-            font-size: 1.25rem;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .toolbar { display: flex; gap: 0.4rem; align-items: center; }
-        .tool-btn, select.sound-select {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text);
-            border-radius: 10px;
-            padding: 0.4rem 0.65rem;
-            font-size: 0.82rem;
-            cursor: pointer;
-            outline: none;
-        }
-        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
-        .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0.6rem; text-align: center; }
-        .stat-val { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
-        .stat-lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; }
-        .goal-track { width: 100%; height: 6px; background: var(--surface); border-radius: 99px; overflow: hidden; margin-bottom: 1.2rem; border: 1px solid var(--border); }
-        .goal-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.5s ease; }
-        .modes { display: flex; gap: 0.35rem; background: var(--surface); padding: 0.35rem; border-radius: 14px; margin-bottom: 1.4rem; border: 1px solid var(--border); }
-        .mode-btn { flex: 1; background: transparent; color: var(--muted); border: none; padding: 0.5rem; border-radius: 10px; font-size: 0.83rem; font-weight: 600; cursor: pointer; }
-        .mode-btn.active { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; }
-        .ring-area { position: relative; width: 210px; height: 210px; margin: 0 auto 1.3rem; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        svg.ring { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
-        .ring-bg { stroke: var(--border); fill: transparent; }
-        .ring-fg { stroke: url(#aiGrad); fill: transparent; stroke-linecap: round; transition: stroke-dashoffset 0.5s linear; }
-        .time-display { font-size: 3.3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .active-task-label { font-size: 0.78rem; color: var(--muted); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0.2rem; }
-        .controls { display: flex; gap: 0.6rem; justify-content: center; margin-bottom: 1.4rem; }
-        .btn-main { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; border: none; padding: 0.75rem 1.7rem; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
-        .btn-sec { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 0.75rem 1.1rem; border-radius: 12px; font-weight: 600; cursor: pointer; }
-        .ai-banner { background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.14)); border: 1px solid rgba(168, 85, 247, 0.32); border-radius: 14px; padding: 0.75rem 0.95rem; margin-bottom: 1.1rem; font-size: 0.83rem; display: flex; align-items: center; gap: 0.6rem; }
-        body.zen .zen-hide { display: none; }
-        .input-row { display: flex; gap: 0.4rem; margin-bottom: 0.85rem; }
-        input[type="text"] { flex: 1; padding: 0.72rem 0.9rem; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; font-size: 0.88rem; }
-        .btn-ai { background: linear-gradient(135deg, #a855f7, #ec4899); color: #fff; border: none; border-radius: 12px; padding: 0 0.85rem; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
-        ul.tasks { list-style: none; padding: 0; margin: 0; max-height: 190px; overflow-y: auto; }
-        li.task-item { background: var(--surface); padding: 0.65rem 0.85rem; border-radius: 12px; margin-bottom: 0.45rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); font-size: 0.88rem; gap: 0.5rem; }
-        li.task-item.pinned { border-color: var(--primary); }
-        li.task-item.done span.txt { text-decoration: line-through; opacity: 0.5; }
-        .task-actions { display: flex; gap: 0.35rem; }
-        .mini-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 0.85rem; padding: 0.15rem 0.3rem; }
-        .footer-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--muted); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="FocusFlow AI — a private, offline-ready deep work timer, task planner, and productivity dashboard.">
+  <title>FocusFlow AI — Deep Work Suite</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090d1d;
+      --surface: rgba(18, 25, 50, .66);
+      --surface-strong: rgba(23, 31, 58, .83);
+      --surface-soft: rgba(255, 255, 255, .045);
+      --border: rgba(201, 223, 255, .13);
+      --border-bright: rgba(201, 223, 255, .23);
+      --text: #f0f5ff;
+      --muted: #9aa9c7;
+      --muted-strong: #bdc9de;
+      --accent: #51e1f5;
+      --accent-2: #a77bff;
+      --success: #72edc6;
+      --danger: #ff9aaf;
+      --shadow: 0 26px 90px rgba(0, 0, 0, .38);
+      --ring-track: rgba(169, 190, 233, .12);
+      --focus-ring: rgba(81, 225, 245, .5);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #eaf0ff;
+      --surface: rgba(255, 255, 255, .70);
+      --surface-strong: rgba(255, 255, 255, .86);
+      --surface-soft: rgba(52, 72, 116, .045);
+      --border: rgba(57, 78, 132, .14);
+      --border-bright: rgba(57, 78, 132, .26);
+      --text: #172441;
+      --muted: #62718f;
+      --muted-strong: #445777;
+      --accent: #008fba;
+      --accent-2: #7553d4;
+      --success: #168f72;
+      --danger: #c93d62;
+      --shadow: 0 24px 80px rgba(55, 78, 135, .15);
+      --ring-track: rgba(65, 94, 154, .12);
+      --focus-ring: rgba(0, 143, 186, .36);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { min-height: 100%; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 35px 18px;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      transition: background .3s ease, color .3s ease;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 17% 12%, rgba(48, 91, 190, .36), transparent 39%),
+        radial-gradient(ellipse at 84% 20%, rgba(106, 62, 186, .30), transparent 43%),
+        radial-gradient(ellipse at 53% 92%, rgba(5, 152, 177, .17), transparent 42%),
+        linear-gradient(155deg, var(--bg), var(--bg));
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      opacity: .4;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(239, 245, 255, .6) .7px, transparent .8px);
+      background-size: 45px 45px;
+      mask-image: linear-gradient(to bottom, #000, transparent 90%);
+    }
+    :root[data-theme="light"] body::after { opacity: .12; }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+    .app {
+      width: min(100%, 1100px);
+      margin: 0 auto;
+      padding: 29px;
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 28px;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .06);
+      backdrop-filter: blur(28px) saturate(145%);
+      -webkit-backdrop-filter: blur(28px) saturate(145%);
+    }
+    .header, .header-actions, .brand, .panel-heading, .stat-top,
+    .goal-top, .task-footer, .footer, .timer-actions, .ambient-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .header { margin-bottom: 22px; }
+    .brand { justify-content: flex-start; gap: 13px; min-width: 0; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border: 1px solid rgba(121, 237, 255, .4);
+      border-radius: 16px;
+      background: linear-gradient(140deg, rgba(71, 221, 243, .23), rgba(171, 116, 255, .25));
+      box-shadow: 0 4px 24px rgba(79, 191, 242, .12);
+      font-size: 25px;
+      flex: 0 0 auto;
+    }
+    h1 { margin: 0; font-size: clamp(18px, 3vw, 25px); line-height: 1.16; letter-spacing: -.7px; }
+    .brand-subtitle { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+    .header-actions { justify-content: flex-end; flex: 0 0 auto; }
+    .icon-button {
+      min-width: 42px;
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: var(--surface-soft);
+      color: var(--text);
+      transition: background .2s, border-color .2s, transform .2s;
+    }
+    .icon-button:hover { background: rgba(117, 140, 199, .15); border-color: var(--border-bright); transform: translateY(-1px); }
+    .icon-button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+    .top-label { color: var(--muted); font-size: 12px; letter-spacing: 1.3px; text-transform: uppercase; font-weight: 750; }
+
+    .coach {
+      display: flex;
+      gap: 13px;
+      align-items: flex-start;
+      padding: 17px 19px;
+      margin-bottom: 19px;
+      border: 1px solid rgba(80, 212, 241, .25);
+      border-radius: 17px;
+      background: linear-gradient(105deg, rgba(65, 201, 225, .11), rgba(147, 106, 255, .095));
+    }
+    .coach-icon { font-size: 22px; flex-shrink: 0; }
+    .coach strong { display: block; margin-bottom: 2px; font-size: 13px; color: var(--accent); letter-spacing: .4px; }
+    .coach p { margin: 0; color: var(--muted-strong); font-size: 13px; }
+
+    .dashboard {
+      padding: 19px 21px 16px;
+      margin-bottom: 19px;
+      border: 1px solid var(--border);
+      border-radius: 19px;
+      background: var(--surface-soft);
+    }
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stat { text-align: center; padding: 6px 8px 15px; }
+    .stat + .stat { border-left: 1px solid var(--border); }
+    .stat-value { display: block; font-size: clamp(22px, 4vw, 32px); line-height: 1.2; font-weight: 770; letter-spacing: -.8px; font-variant-numeric: tabular-nums; }
+    .stat-label { display: block; color: var(--muted); font-size: 11px; margin-top: 5px; text-transform: uppercase; letter-spacing: .65px; }
+    .goal { border-top: 1px solid var(--border); padding-top: 14px; }
+    .goal-top { flex-wrap: wrap; color: var(--muted-strong); font-size: 12px; margin-bottom: 9px; }
+    .goal-top strong { color: var(--text); }
+    .goal-settings { display: flex; align-items: center; gap: 7px; }
+    .goal-settings label { color: var(--muted); }
+    .goal-settings input {
+      width: 63px;
+      min-height: 27px;
+      padding: 3px 5px;
+      color: var(--text);
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .progress-track { height: 9px; background: var(--ring-track); border-radius: 999px; overflow: hidden; }
+    .progress-fill {
+      width: 0%; height: 100%;
+      background: linear-gradient(90deg, #44d9ec, #ad7aff);
+      border-radius: inherit;
+      box-shadow: 0 0 20px rgba(80, 226, 245, .3);
+      transition: width .5s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .app-grid { display: grid; grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr); gap: 19px; align-items: stretch; }
+    .panel { background: var(--surface-strong); border: 1px solid var(--border); border-radius: 21px; min-width: 0; padding: 22px; }
+    .panel-heading { align-items: flex-start; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 17px; letter-spacing: -.3px; }
+    .section-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .eyebrow { font-size: 10px; letter-spacing: 1.4px; font-weight: 750; color: var(--accent); text-transform: uppercase; }
+
+    .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 5px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-soft); }
+    .mode-button { border: 0; border-radius: 9px; padding: 10px 5px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 690; }
+    .mode-button:hover { color: var(--text); }
+    .mode-button[aria-selected="true"] { background: linear-gradient(130deg, rgba(73, 212, 232, .18), rgba(161, 117, 246, .18)); color: var(--text); box-shadow: inset 0 0 0 1px var(--border-bright); }
+    .timer-wrap { display: grid; justify-items: center; padding: 25px 0 19px; }
+    .timer-dial { position: relative; display: grid; place-items: center; width: 200px; height: 200px; }
+    .timer-svg { width: 200px; height: 200px; transform: rotate(-90deg); filter: drop-shadow(0 0 8px rgba(73, 214, 232, .14)); }
+    .ring-track { fill: none; stroke: var(--ring-track); stroke-width: 10; }
+    .ring-progress { fill: none; stroke: url(#ringGradient); stroke-linecap: round; stroke-width: 10; stroke-dasharray: 552.92; stroke-dashoffset: 0; }
+    .timer-content { position: absolute; inset: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .time-display { font-size: 43px; font-weight: 780; letter-spacing: -2px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .timer-status { margin-top: 8px; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 730; color: var(--accent); }
+    .pinned-task { max-width: 142px; min-height: 28px; margin-top: 9px; color: var(--muted-strong); font-size: 10px; line-height: 1.4; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+    .timer-hint { margin: 10px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+    .timer-actions { justify-content: center; gap: 10px; }
+    .primary-button, .secondary-button {
+      min-height: 43px; border-radius: 12px; border: 1px solid transparent;
+      padding: 0 18px; font-weight: 730; font-size: 13px;
+      transition: transform .2s, filter .2s, border-color .2s;
+    }
+    .primary-button { background: linear-gradient(115deg, #49d7ed, #a486ff); color: #091227; box-shadow: 0 8px 25px rgba(91, 168, 242, .2); }
+    .primary-button:hover { filter: brightness(1.09); transform: translateY(-1px); }
+    .secondary-button { color: var(--text); background: var(--surface-soft); border-color: var(--border); }
+    .secondary-button:hover { border-color: var(--border-bright); transform: translateY(-1px); }
+    .timer-actions .primary-button { min-width: 134px; }
+    .shortcut { text-align: center; margin: 12px 0 21px; font-size: 11px; color: var(--muted); }
+    kbd { display: inline-block; border: 1px solid var(--border-bright); border-radius: 5px; padding: 1px 5px; font: inherit; }
+    .ambient { border-top: 1px solid var(--border); padding-top: 17px; }
+    .ambient-controls { gap: 8px; }
+    .ambient-controls label { color: var(--muted-strong); font-size: 12px; font-weight: 650; }
+    .ambient-controls select {
+      min-width: 0; width: 176px; max-width: 64%; padding: 10px 12px;
+      border-radius: 10px; border: 1px solid var(--border);
+      color: var(--text); background: var(--surface-strong);
+      font-size: 12px;
+    }
+    select option { background: var(--bg); color: var(--text); }
+    .ambient-note { color: var(--muted); font-size: 11px; margin: 10px 0 0; }
+
+    .task-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 12px; }
+    .task-form input {
+      min-width: 0; width: 100%; min-height: 43px; border: 1px solid var(--border);
+      border-radius: 11px; background: var(--surface-soft); color: var(--text);
+      padding: 10px 12px; outline: none; font-size: 13px;
+    }
+    .task-form input::placeholder { color: var(--muted); }
+    .split-button { width: 100%; margin-bottom: 16px; }
+    .task-list-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .task-list-header strong { font-size: 13px; }
+    .task-list-header span { color: var(--muted); font-size: 11px; }
+    .task-list { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--border-bright) transparent; }
+    .task-item { display: flex; align-items: flex-start; gap: 9px; padding: 13px 2px; border-bottom: 1px solid var(--border); }
+    .task-check { flex: 0 0 auto; width: 22px; height: 22px; border: 1.5px solid var(--border-bright); border-radius: 7px; color: transparent; background: transparent; display: grid; place-items: center; font-size: 12px; padding: 0; }
+    .task-check:hover { border-color: var(--accent); }
+    .task-check.done { color: #092039; background: var(--success); border-color: var(--success); }
+    .task-body { flex: 1; min-width: 0; }
+    .task-name { display: block; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+    .task-item.is-done .task-name { text-decoration: line-through; color: var(--muted); }
+    .task-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; }
+    .mini-tag { display: inline-block; padding: 2px 7px; font-size: 10px; border-radius: 6px; background: var(--surface-soft); color: var(--muted); }
+    .mini-tag.pinned { color: var(--accent); background: rgba(82, 210, 237, .1); }
+    .task-tools { display: flex; gap: 4px; flex: 0 0 auto; }
+    .task-tool { width: 27px; height: 27px; border-radius: 7px; background: transparent; border: 1px solid transparent; color: var(--muted); font-size: 13px; padding: 0; }
+    .task-tool:hover { background: var(--surface-soft); color: var(--text); border-color: var(--border); }
+    .task-tool.is-pinned { color: var(--accent); }
+    .task-tool.remove:hover { color: var(--danger); }
+    .empty-tasks { margin: 0; padding: 28px 14px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .task-footer { align-items: flex-end; margin-top: 17px; flex-wrap: wrap; }
+    .task-footer p { font-size: 11px; color: var(--muted); margin: 0; max-width: 185px; }
+    .export-button { white-space: nowrap; }
+    .footer { margin-top: 19px; color: var(--muted); font-size: 11px; }
+    .footer span:last-child { text-align: right; }
+    .toast { position: fixed; bottom: 22px; left: 50%; transform: translate(-50%, 14px); opacity: 0; pointer-events: none; padding: 11px 17px; border-radius: 12px; border: 1px solid var(--border-bright); color: var(--text); background: var(--surface-strong); box-shadow: var(--shadow); backdrop-filter: blur(16px); transition: opacity .2s, transform .2s; z-index: 10; font-size: 13px; text-align: center; max-width: calc(100vw - 32px); }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .sr-only { position: absolute; height: 1px; width: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+    .app.zen-mode .secondary { display: none !important; }
+    .app.zen-mode .app-grid { grid-template-columns: minmax(0, 530px); justify-content: center; }
+    .app.zen-mode .brand-subtitle { display: none; }
+    .app.zen-mode .timer-wrap { padding-top: 32px; padding-bottom: 30px; }
+    @media (max-width: 820px) {
+      .app { padding: 21px; }
+      .app-grid { grid-template-columns: minmax(0, 1fr); }
+      .task-list { max-height: 360px; }
+    }
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .app { padding: 15px; border-radius: 19px; }
+      .brand-mark { width: 41px; height: 41px; border-radius: 13px; }
+      .header { align-items: flex-start; }
+      .header-actions { gap: 5px; }
+      .icon-button { min-width: 36px; min-height: 36px; }
+      .brand { gap: 8px; }
+      .brand-subtitle { font-size: 10px; }
+      .dashboard { padding: 16px 10px; }
+      .stat { padding-left: 3px; padding-right: 3px; }
+      .stat-label { font-size: 9px; letter-spacing: 0; }
+      .panel { padding: 17px; }
+      .task-footer { align-items: stretch; }
+      .task-footer p { max-width: none; }
+      .export-button { width: 100%; }
+      .footer { flex-direction: column; gap: 3px; align-items: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
 </head>
-
 <body>
-    <div class="app-shell">
-        <div class="header">
-            <div class="logo">✨ FocusFlow AI v4.0</div>
-            <div class="toolbar">
-                <select class="sound-select" onchange="changeSound(this.value)">
-                    <option value="off">🔇 Sound Off</option>
-                    <option value="brown">🎧 Deep Brown</option>
-                    <option value="pink">🌧️ Soft Rain</option>
-                </select>
-                <button class="tool-btn" onclick="document.body.classList.toggle('zen')" title="Zen Mode">⛶</button>
-                <button class="tool-btn" onclick="document.body.classList.toggle('light')" title="Theme">🌓</button>
+  <main class="app" id="app">
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">✦</div>
+        <div>
+          <h1>FocusFlow <span style="color:var(--accent)">AI</span></h1>
+          <p class="brand-subtitle">DEEP WORK SUITE · Make space for your best work</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-button" id="themeToggle" type="button" aria-label="Switch to light theme" title="Toggle light/dark theme">🌓</button>
+        <button class="icon-button" id="zenToggle" type="button" aria-pressed="false" aria-label="Enable Zen Mode" title="Toggle distraction-free Zen Mode">⛶</button>
+      </div>
+    </header>
+
+    <section class="coach secondary" aria-label="AI coach" aria-live="polite">
+      <div class="coach-icon" aria-hidden="true">✨</div>
+      <div>
+        <strong>FOCUSFLOW COACH</strong>
+        <p id="coachMessage">One clear priority is all you need. Choose what matters and begin.</p>
+      </div>
+    </section>
+
+    <section class="dashboard secondary" aria-label="Today's productivity statistics">
+      <div class="stat-top" style="margin-bottom:13px">
+        <span class="top-label">Today's momentum</span>
+        <span id="todayLabel" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="stat-value" id="sessionCount">0</span><span class="stat-label">Completed sessions</span></div>
+        <div class="stat"><span class="stat-value" id="minuteCount">0</span><span class="stat-label">Deep work minutes</span></div>
+        <div class="stat"><span class="stat-value" id="taskCount">0</span><span class="stat-label">Completed tasks</span></div>
+      </div>
+      <div class="goal">
+        <div class="goal-top">
+          <span><strong>Daily deep work goal</strong> · <span id="goalProgressText">0 / 120 min</span></span>
+          <div class="goal-settings">
+            <label for="goalInput">Goal (min)</label>
+            <input id="goalInput" type="number" min="5" max="1440" step="5" value="120">
+            <strong id="goalPercent">0%</strong>
+          </div>
+        </div>
+        <div class="progress-track" id="goalTrack" role="progressbar" aria-label="Daily goal progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progress-fill" id="goalFill"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-grid">
+      <section class="panel timer-panel" aria-labelledby="timerHeading">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">01 / DEEP WORK</span>
+            <h2 id="timerHeading">Your focus space</h2>
+            <p class="section-subtitle">Create a little room for progress.</p>
+          </div>
+          <span aria-hidden="true">✳</span>
+        </div>
+
+        <div class="modes" role="tablist" aria-label="Timer mode">
+          <button type="button" role="tab" class="mode-button" data-mode="focus" aria-selected="true">Focus · 25m</button>
+          <button type="button" role="tab" class="mode-button" data-mode="short" aria-selected="false">Short · 5m</button>
+          <button type="button" role="tab" class="mode-button" data-mode="long" aria-selected="false">Long · 15m</button>
+        </div>
+
+        <div class="timer-wrap">
+          <div class="timer-dial" role="timer" aria-label="Pomodoro countdown">
+            <svg class="timer-svg" width="200" height="200" viewBox="0 0 200 200" aria-hidden="true">
+              <defs>
+                <linearGradient id="ringGradient" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#4be7ef"></stop>
+                  <stop offset="100%" stop-color="#ab7cff"></stop>
+                </linearGradient>
+              </defs>
+              <circle class="ring-track" cx="100" cy="100" r="88"></circle>
+              <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="88"></circle>
+            </svg>
+            <div class="timer-content">
+              <div class="time-display" id="timeDisplay">25:00</div>
+              <div class="timer-status" id="timerStatus">READY TO FOCUS</div>
+              <div class="pinned-task" id="pinnedTask">📌 Pin a task to focus on</div>
             </div>
+          </div>
+          <p class="timer-hint" id="timerHint">Small steps. Uninterrupted attention.</p>
         </div>
-        <div class="stats-bar zen-hide">
-            <div class="stat-box"><div class="stat-val" id="statSessions">0</div><div class="stat-lbl">Sessions</div></div>
-            <div class="stat-box"><div class="stat-val" id="statMinutes">0m</div><div class="stat-lbl">Deep Work</div></div>
-            <div class="stat-box"><div class="stat-val" id="statTasks">0/0</div><div class="stat-lbl">Completed</div></div>
+
+        <div class="timer-actions">
+          <button class="primary-button" type="button" id="startPause">▶ Start focus</button>
+          <button class="secondary-button" type="button" id="resetTimer">↻ Reset</button>
         </div>
-        <div class="goal-track zen-hide"><div class="goal-fill" id="goalFill"></div></div>
-        <div class="modes">
-            <button class="mode-btn active" onclick="setMode(25, this)">Deep Focus (25m)</button>
-            <button class="mode-btn" onclick="setMode(5, this)">Short Break (5m)</button>
-            <button class="mode-btn" onclick="setMode(15, this)">Long Break (15m)</button>
+        <p class="shortcut">Tip: press <kbd>Space</kbd> to start or pause</p>
+
+        <div class="ambient">
+          <div class="ambient-controls">
+            <label for="soundscape">♫ Soundscape</label>
+            <select id="soundscape" aria-label="Choose ambient soundscape">
+              <option value="off">Off · Silence</option>
+              <option value="brown">Deep Brown Noise</option>
+              <option value="rain">Soft Rain</option>
+            </select>
+          </div>
+          <p class="ambient-note">Generated live in your browser — no files, no streaming.</p>
         </div>
-        <div class="ring-area">
-            <svg class="ring" width="210" height="210">
-                <defs><linearGradient id="aiGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#38bdf8" /><stop offset="100%" stop-color="#a855f7" /></linearGradient></defs>
-                <circle class="ring-bg" stroke-width="10" r="92" cx="105" cy="105" />
-                <circle class="ring-fg" id="ringFg" stroke-width="10" r="92" cx="105" cy="105" />
-            </svg>
-            <div class="time-display" id="display">25:00</div>
-            <div class="active-task-label" id="pinnedLabel">No active task pinned</div>
+      </section>
+
+      <section class="panel tasks-panel secondary" aria-labelledby="tasksHeading">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">02 / INTENTIONAL ACTION</span>
+            <h2 id="tasksHeading">Your task garden</h2>
+            <p class="section-subtitle">Break big goals into manageable wins.</p>
+          </div>
+          <span aria-hidden="true">✧</span>
         </div>
-        <div class="controls">
-            <button class="btn-main" id="startBtn" onclick="toggleTimer()">▶ Start Focus</button>
-            <button class="btn-sec" onclick="resetTimer()">↺ Reset</button>
+
+        <form id="taskForm" class="task-form">
+          <label class="sr-only" for="taskInput">New task or goal</label>
+          <input id="taskInput" maxlength="180" autocomplete="off" placeholder="What's your next priority?" required>
+          <button class="primary-button" type="submit">+ Add</button>
+        </form>
+        <button class="secondary-button split-button" id="splitInput" type="button">✨ AI Split — turn this goal into 3 steps</button>
+
+        <div class="task-list-header">
+          <strong>My focus list</strong>
+          <span id="taskListCount">0 open · 0 done</span>
         </div>
-        <div class="ai-banner zen-hide">
-            <span>🤖</span>
-            <span id="coachMsg"><strong>AI Coach:</strong> Press <b>Space</b> to start/pause, or type a goal and hit <b>✨ AI Split</b>.</span>
+        <ul class="task-list" id="taskList" aria-label="Tasks"></ul>
+
+        <div class="task-footer">
+          <p>📌 Pin a task to display it inside your timer.</p>
+          <button class="secondary-button export-button" id="exportMarkdown" type="button">📥 Export .md</button>
         </div>
-        <div class="input-row zen-hide">
-            <input type="text" id="taskInput" placeholder="Add a goal or task..." onkeypress="if(event.key==='Enter') addTask()">
-            <button class="btn-sec" onclick="addTask()" style="padding:0 0.9rem;">+</button>
-            <button class="btn-ai" onclick="aiSplit()">✨ AI Split</button>
-        </div>
-        <ul class="tasks zen-hide" id="taskList"></ul>
-        <div class="footer-bar zen-hide">
-            <span>Shortcut: <strong>Space</strong> = Start/Pause</span>
-            <button class="tool-btn" onclick="exportMarkdown()">📥 Export .md</button>
-        </div>
+      </section>
     </div>
-    <script>
-        let totalSecs = 1500, time = 1500, currentMins = 25, timerId = null, pinnedIdx = -1, audioCtx = null;
-        let sessions = parseInt(localStorage.getItem('ff4_sessions') || '0');
-        let focusMins = parseInt(localStorage.getItem('ff4_mins') || '0');
-        let tasks = JSON.parse(localStorage.getItem('ff4_tasks') || '[]');
-        const ring = document.getElementById('ringFg'), circ = 2 * Math.PI * 92;
-        ring.style.strokeDasharray = `${circ} ${circ}`;
 
-        function updateUI() {
-            const m = Math.floor(time / 60).toString().padStart(2, '0'), s = (time % 60).toString().padStart(2, '0');
-            document.getElementById('display').textContent = `${m}:${s}`;
-            document.title = `${m}:${s} — FocusFlow AI`;
-            ring.style.strokeDashoffset = circ - ((time / totalSecs) * circ);
-            document.getElementById('statSessions').textContent = sessions;
-            document.getElementById('statMinutes').textContent = `${focusMins}m`;
-            document.getElementById('statTasks').textContent = `${tasks.filter(t => t.done).length}/${tasks.length}`;
-            document.getElementById('goalFill').style.width = `${Math.min(100, (sessions / 4) * 100)}%`;
-            document.getElementById('pinnedLabel').textContent = (pinnedIdx >= 0 && tasks[pinnedIdx]) ? `📌 ${tasks[pinnedIdx].text}` : 'No active task pinned';
+    <footer class="footer secondary">
+      <span>✦ FocusFlow AI · Breathe. Focus. Grow.</span>
+      <span>Private by design · Everything stays in your browser</span>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+
+    (() => {
+      const STORE_KEY = 'focusflow-ai-deep-work-v1';
+      const DURATIONS = { focus: 25 * 60 * 1000, short: 5 * 60 * 1000, long: 15 * 60 * 1000 };
+      const MODE_LABELS = { focus: 'Focus', short: 'Short break', long: 'Long break' };
+      const CIRCUMFERENCE = 2 * Math.PI * 88;
+      const $ = (id) => document.getElementById(id);
+      const el = {
+        app: $('app'), themeToggle: $('themeToggle'), zenToggle: $('zenToggle'),
+        coachMessage: $('coachMessage'), todayLabel: $('todayLabel'),
+        sessionCount: $('sessionCount'), minuteCount: $('minuteCount'), taskCount: $('taskCount'),
+        goalInput: $('goalInput'), goalFill: $('goalFill'), goalProgressText: $('goalProgressText'),
+        goalPercent: $('goalPercent'), goalTrack: $('goalTrack'), ringProgress: $('ringProgress'),
+        timeDisplay: $('timeDisplay'), timerStatus: $('timerStatus'), pinnedTask: $('pinnedTask'),
+        timerHint: $('timerHint'), startPause: $('startPause'), resetTimer: $('resetTimer'),
+        soundscape: $('soundscape'), taskForm: $('taskForm'), taskInput: $('taskInput'),
+        splitInput: $('splitInput'), taskList: $('taskList'), taskListCount: $('taskListCount'),
+        exportMarkdown: $('exportMarkdown'), toast: $('toast')
+      };
+
+      function localDate(value = new Date()) {
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return '';
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      function freshState() { return { theme: 'dark', zen: false, goalMinutes: 120, tasks: [], days: {}, pinnedTaskId: null }; }
+      function loadState() {
+        try {
+          const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+          if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return freshState();
+          return {
+            theme: raw.theme === 'light' ? 'light' : 'dark',
+            zen: raw.zen === true,
+            goalMinutes: Number.isFinite(raw.goalMinutes) ? Math.min(1440, Math.max(5, Math.round(raw.goalMinutes))) : 120,
+            tasks: Array.isArray(raw.tasks) ? raw.tasks.filter(t => t && typeof t.id === 'string' && typeof t.text === 'string').slice(0, 1000) : [],
+            days: raw.days && typeof raw.days === 'object' && !Array.isArray(raw.days) ? raw.days : {},
+            pinnedTaskId: typeof raw.pinnedTaskId === 'string' ? raw.pinnedTaskId : null
+          };
+        } catch { return freshState(); }
+      }
+      let state = loadState();
+      function save() {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+        catch { /* App still works in memory when storage is unavailable. */ }
+      }
+      const today = () => localDate();
+      function dayStats(date = today()) {
+        const day = state.days[date] || {};
+        return {
+          sessions: Number.isFinite(day.sessions) ? day.sessions : 0,
+          minutes: Number.isFinite(day.minutes) ? day.minutes : 0,
+          tasks: state.tasks.filter(t => t.done === true && t.completedAt && localDate(t.completedAt) === date).length
+        };
+      }
+      function currentTask() { return state.tasks.find(t => t.id === state.pinnedTaskId && !t.done) || null; }
+      function notify(message) {
+        el.toast.textContent = message;
+        el.toast.classList.add('show');
+        clearTimeout(notify.timeout);
+        notify.timeout = setTimeout(() => el.toast.classList.remove('show'), 2800);
+      }
+      function coach(message) { el.coachMessage.textContent = message; }
+      function coachDefault() {
+        const stats = dayStats();
+        const task = currentTask();
+        if (stats.minutes >= state.goalMinutes) return 'Daily goal achieved! You showed up for yourself today. Celebrate your progress.';
+        if (task) return `Your next move: “${task.text}”. Protect one focus block and begin.`;
+        if (stats.sessions > 0) return `You've completed ${stats.sessions} focus ${stats.sessions === 1 ? 'session' : 'sessions'} today. One more small win is within reach.`;
+        return 'One clear priority is all you need. Choose what matters and begin.';
+      }
+      function renderTheme() {
+        document.documentElement.dataset.theme = state.theme;
+        el.themeToggle.setAttribute('aria-label', state.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+        el.themeToggle.setAttribute('aria-pressed', String(state.theme === 'light'));
+      }
+      function renderZen() {
+        el.app.classList.toggle('zen-mode', state.zen);
+        el.zenToggle.setAttribute('aria-pressed', String(state.zen));
+        el.zenToggle.setAttribute('aria-label', state.zen ? 'Disable Zen Mode' : 'Enable Zen Mode');
+        el.zenToggle.title = state.zen ? 'Exit Zen Mode' : 'Enter Zen Mode';
+      }
+      function renderStats() {
+        const stats = dayStats();
+        const pct = Math.min(100, Math.round(stats.minutes / state.goalMinutes * 100));
+        el.sessionCount.textContent = String(stats.sessions);
+        el.minuteCount.textContent = String(stats.minutes);
+        el.taskCount.textContent = String(stats.tasks);
+        el.todayLabel.textContent = new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        el.goalInput.value = String(state.goalMinutes);
+        el.goalProgressText.textContent = `${stats.minutes} / ${state.goalMinutes} min`;
+        el.goalPercent.textContent = `${Math.round(stats.minutes / state.goalMinutes * 100)}%`;
+        el.goalFill.style.width = `${pct}%`;
+        el.goalTrack.setAttribute('aria-valuenow', String(pct));
+        el.goalTrack.setAttribute('aria-valuetext', `${stats.minutes} of ${state.goalMinutes} minutes`);
+      }
+
+      // TIMER: use wall-clock deadlines so returning to a background tab catches up.
+      let mode = 'focus';
+      let remainingMs = DURATIONS[mode];
+      let deadline = 0;
+      let running = false;
+      let frameId = null;
+      let lastRenderedSecond = null;
+      function renderTimer() {
+        const seconds = Math.ceil(remainingMs / 1000);
+        if (lastRenderedSecond !== seconds) {
+          const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+          const secs = String(seconds % 60).padStart(2, '0');
+          el.timeDisplay.textContent = `${mins}:${secs}`;
+          document.title = running ? `${mins}:${secs} · FocusFlow AI` : 'FocusFlow AI — Deep Work Suite';
+          lastRenderedSecond = seconds;
         }
-        function setMode(mins, btn) {
-            stopTimer(); currentMins = mins; totalSecs = mins * 60; time = totalSecs;
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active'); updateUI();
-            coach(mins === 25 ? "Deep Focus mode armed. Pin a task with 📌." : "Break mode active. Rest your eyes.");
+        const ratio = Math.max(0, Math.min(1, remainingMs / DURATIONS[mode]));
+        el.ringProgress.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - ratio));
+        el.timerStatus.textContent = running ? (mode === 'focus' ? 'IN THE ZONE' : 'REST & RESET') : remainingMs <= 0 ? 'SESSION COMPLETE' : 'READY TO ' + (mode === 'focus' ? 'FOCUS' : 'REST');
+        el.startPause.textContent = running ? 'Ⅱ Pause' : remainingMs <= 0 ? '↻ Restart' : mode === 'focus' ? '▶ Start focus' : '▶ Start break';
+        el.timerHint.textContent = running ? (mode === 'focus' ? 'One thing at a time. You are doing great.' : 'Take a breath. You have earned this pause.') : remainingMs <= 0 ? 'Beautiful work. Ready for another round?' : 'Small steps. Uninterrupted attention.';
+        const task = currentTask();
+        el.pinnedTask.textContent = task ? `📌 ${task.text}` : mode === 'focus' ? '📌 Pin a task to focus on' : '☁ Take a mindful pause';
+      }
+      function stopFrame() {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+      }
+      function pauseTimer() {
+        if (!running) return;
+        remainingMs = Math.max(0, deadline - Date.now());
+        running = false;
+        stopFrame();
+        renderTimer();
+        coach('Paused is not abandoned. Resume when you are ready.');
+      }
+      function finishTimer() {
+        running = false;
+        remainingMs = 0;
+        stopFrame();
+        if (mode === 'focus') {
+          const key = today();
+          const prev = dayStats(key);
+          state.days[key] = { sessions: prev.sessions + 1, minutes: prev.minutes + 25 };
+          save();
+          renderStats();
+          coach(dayStats().minutes >= state.goalMinutes ? 'Daily goal unlocked! Your deep work is adding up. Fantastic focus.' : 'A full 25-minute focus session is complete. Stand up, hydrate, and enjoy a short break.');
+          notify('🎉 Focus complete! +25 deep work minutes');
+        } else {
+          coach('Break complete. Your mind has had room to reset. Ready for your next focus block?');
+          notify('✨ Break complete. Ready to focus?');
         }
-        function toggleTimer() {
-            if (timerId) { stopTimer(); coach("Session paused."); return; }
-            document.getElementById('startBtn').textContent = "⏸ Pause";
-            coach("Focus timer running. Stay in flow!");
-            timerId = setInterval(() => {
-                if (time > 0) { time--; updateUI(); }
-                else {
-                    stopTimer(); chime();
-                    if (currentMins === 25) {
-                        sessions++; focusMins += 25;
-                        localStorage.setItem('ff4_sessions', sessions); localStorage.setItem('ff4_mins', focusMins);
-                        coach(`🎉 Session #${sessions} complete!`);
-                    } else coach("Break finished!");
-                    updateUI();
-                }
-            }, 1000);
+        playChime();
+        renderTimer();
+      }
+      function frame() {
+        if (!running) return;
+        remainingMs = Math.max(0, deadline - Date.now());
+        if (remainingMs === 0) { finishTimer(); return; }
+        renderTimer();
+        frameId = requestAnimationFrame(frame);
+      }
+      function startTimer() {
+        if (running) return;
+        if (remainingMs <= 0) remainingMs = DURATIONS[mode];
+        running = true;
+        deadline = Date.now() + remainingMs;
+        lastRenderedSecond = null;
+        // A timer-start gesture also unlocks future chimes on restrictive browsers.
+        enableAudio().catch(() => {});
+        coach(mode === 'focus' ? 'Your focus block has started. Silence the noise and give this one thing your attention.' : 'Recovery is productive, too. Rest without guilt.');
+        frame();
+      }
+      function resetTimer() {
+        running = false;
+        stopFrame();
+        remainingMs = DURATIONS[mode];
+        lastRenderedSecond = null;
+        renderTimer();
+        coach(coachDefault());
+      }
+      function setMode(nextMode) {
+        if (!Object.hasOwn(DURATIONS, nextMode)) return;
+        mode = nextMode;
+        document.querySelectorAll('.mode-button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === mode)));
+        resetTimer();
+        coach(mode === 'focus' ? coachDefault() : `${MODE_LABELS[mode]} selected. Give yourself permission to recharge.`);
+      }
+
+      // TASKS: all user text enters the DOM via textContent, never innerHTML.
+      function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`; }
+      function newTask(text, estimate = null, micro = false) {
+        return { id: uid(), text: text.trim().slice(0, 180), done: false, createdAt: new Date().toISOString(), completedAt: null, estimate, micro };
+      }
+      function addTask(text) {
+        const value = text.trim();
+        if (!value) { el.taskInput.focus(); notify('Type a goal or task first.'); return; }
+        state.tasks.push(newTask(value));
+        save();
+        el.taskInput.value = '';
+        renderTasks();
+        coach(`Added: “${value}”. Pin it for your next focus block, or break it into three easy steps.`);
+        notify('Task added to your garden');
+      }
+      function splitGoal(goal, replaceId = null) {
+        const value = goal.trim();
+        if (!value) { el.taskInput.focus(); notify('Enter a goal before using AI Split.'); return; }
+        const pieces = [
+          newTask(`Plan & setup — ${value}`, 10, true),
+          newTask(`Core deep work — ${value}`, 25, true),
+          newTask(`Review & polish — ${value}`, 10, true)
+        ];
+        if (replaceId) {
+          const i = state.tasks.findIndex(t => t.id === replaceId);
+          if (i >= 0) state.tasks.splice(i, 1, ...pieces);
+          else state.tasks.push(...pieces);
+        } else {
+          state.tasks.push(...pieces);
+          el.taskInput.value = '';
         }
-        function stopTimer() { clearInterval(timerId); timerId = null; document.getElementById('startBtn').textContent = "▶ Start Focus"; }
-        function resetTimer() { stopTimer(); time = totalSecs; updateUI(); }
-        function chime() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-                const o = ctx.createOscillator(), g = ctx.createGain();
-                o.type = 'triangle'; o.frequency.setValueAtTime(f, ctx.currentTime + i * 0.12);
-                g.gain.setValueAtTime(0.14, ctx.currentTime + i * 0.12); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.45);
-                o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.45);
-            });
+        state.pinnedTaskId = pieces[1].id;
+        save();
+        renderTasks();
+        renderTimer();
+        coach('Goal split into 3 timed steps: 10 minutes to prepare, 25 to focus, and 10 to refine. Your core task is now pinned!');
+        notify('✨ Goal split into three micro-tasks');
+      }
+      function toggleTask(id) {
+        const task = state.tasks.find(t => t.id === id);
+        if (!task) return;
+        task.done = !task.done;
+        task.completedAt = task.done ? new Date().toISOString() : null;
+        if (task.done && state.pinnedTaskId === id) state.pinnedTaskId = null;
+        save();
+        renderTasks();
+        renderTimer();
+        renderStats();
+        coach(task.done ? `“${task.text}” is complete. Progress is built one finished step at a time.` : 'Task returned to your list. Every unfinished step is a fresh opportunity.');
+      }
+      function pinTask(id) {
+        const task = state.tasks.find(t => t.id === id && !t.done);
+        if (!task) return;
+        state.pinnedTaskId = state.pinnedTaskId === id ? null : id;
+        save();
+        renderTasks();
+        renderTimer();
+        coach(coachDefault());
+        notify(state.pinnedTaskId ? '📌 Active task pinned to your timer' : 'Task unpinned');
+      }
+      function removeTask(id) {
+        state.tasks = state.tasks.filter(t => t.id !== id);
+        if (state.pinnedTaskId === id) state.pinnedTaskId = null;
+        save();
+        renderTasks();
+        renderTimer();
+        renderStats();
+        coach(coachDefault());
+        notify('Task removed');
+      }
+      function taskTool(symbol, label, onClick, extraClass = '') {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `task-tool ${extraClass}`;
+        button.textContent = symbol;
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.addEventListener('click', onClick);
+        return button;
+      }
+      function renderTasks() {
+        el.taskList.replaceChildren();
+        const done = state.tasks.filter(t => t.done).length;
+        el.taskListCount.textContent = `${state.tasks.length - done} open · ${done} done`;
+        if (state.tasks.length === 0) {
+          const empty = document.createElement('li');
+          empty.className = 'empty-tasks';
+          empty.textContent = '🌱 Every meaningful project starts with one small step. Add a task above to begin.';
+          el.taskList.append(empty);
+          return;
         }
-        function changeSound(type) {
-            if (audioCtx) { audioCtx.close(); audioCtx = null; }
-            if (type === 'off') { coach("Ambient sound off."); return; }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const size = 2 * audioCtx.sampleRate, buf = audioCtx.createBuffer(1, size, audioCtx.sampleRate), data = buf.getChannelData(0);
-            let last = 0, b0=0, b1=0, b2=0;
-            for (let i = 0; i < size; i++) {
-                const w = Math.random() * 2 - 1;
-                if (type === 'brown') { data[i] = (last + 0.02 * w) / 1.02; last = data[i]; data[i] *= 0.18; }
-                else { b0 = 0.99765*b0 + w*0.099046; b1 = 0.963*b1 + w*0.2965164; b2 = 0.57*b2 + w*1.0526913; data[i] = (b0+b1+b2+w*0.1848)*0.04; }
+        // Keep pinned tasks near the top; preserve the user's original order otherwise.
+        const sorted = [...state.tasks].sort((a, b) => Number(a.done) - Number(b.done) || Number(b.id === state.pinnedTaskId) - Number(a.id === state.pinnedTaskId));
+        for (const task of sorted) {
+          const li = document.createElement('li');
+          li.className = `task-item${task.done ? ' is-done' : ''}`;
+          const checkbox = document.createElement('button');
+          checkbox.type = 'button';
+          checkbox.className = `task-check${task.done ? ' done' : ''}`;
+          checkbox.textContent = task.done ? '✓' : '';
+          checkbox.setAttribute('role', 'checkbox');
+          checkbox.setAttribute('aria-checked', String(Boolean(task.done)));
+          checkbox.setAttribute('aria-label', `${task.done ? 'Mark incomplete' : 'Complete'}: ${task.text}`);
+          checkbox.addEventListener('click', () => toggleTask(task.id));
+          const body = document.createElement('div');
+          body.className = 'task-body';
+          const name = document.createElement('span');
+          name.className = 'task-name';
+          name.textContent = task.text;
+          body.append(name);
+          if (task.estimate || task.id === state.pinnedTaskId) {
+            const meta = document.createElement('div');
+            meta.className = 'task-meta';
+            if (task.estimate) {
+              const badge = document.createElement('span');
+              badge.className = 'mini-tag';
+              badge.textContent = `${task.estimate}m timebox`;
+              meta.append(badge);
             }
-            const src = audioCtx.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(audioCtx.destination); src.start(0);
-            coach(type === 'brown' ? "🎧 Deep Brown Noise active." : "🌧️ Soft Rain soundscape active.");
-        }
-        function coach(html) { document.getElementById('coachMsg').innerHTML = `<strong>AI Coach:</strong> ${html}`; }
-        function aiSplit() {
-            const inp = document.getElementById('taskInput'), val = inp.value.trim();
-            if (!val) { coach("Type a task first, then click <b>✨ AI Split</b>!"); return; }
-            [`[10m] Plan & setup: ${val}`, `[25m] Core deep-work sprint: ${val}`, `[10m] Review & finalize: ${val}`].forEach(p => tasks.push({ text: p, done: false }));
-            inp.value = ''; saveTasks(); coach(`✨ AI broke "<b>${val}</b>" into 3 micro-tasks!`);
-        }
-        function saveTasks() {
-            localStorage.setItem('ff4_tasks', JSON.stringify(tasks));
-            const ul = document.getElementById('taskList'); ul.innerHTML = '';
-            tasks.forEach((t, i) => {
-                const li = document.createElement('li');
-                li.className = `task-item ${t.done ? 'done' : ''} ${i === pinnedIdx ? 'pinned' : ''}`;
-                li.innerHTML = `<span class="txt" onclick="tasks[${i}].done=!tasks[${i}].done;saveTasks();" style="cursor:pointer;flex:1;">${t.text}</span><div class="task-actions"><button class="mini-btn" onclick="pinnedIdx=(pinnedIdx===${i}?-1:${i});saveTasks();">📌</button><button class="mini-btn" onclick="if(pinnedIdx===${i})pinnedIdx=-1;tasks.splice(${i},1);saveTasks();" style="color:#ef4444;">✕</button></div>`;
-                ul.appendChild(li);
-            });
-            updateUI();
-        }
-        function addTask() { const inp = document.getElementById('taskInput'); if (!inp.value.trim()) return; tasks.push({ text: inp.value.trim(), done: false }); inp.value = ''; saveTasks(); }
-        function exportMarkdown() {
-            const date = new Date().toISOString().split('T')[0];
-            let md = `# FocusFlow AI Summary (${date})\n- Sessions: ${sessions}\n- Deep Work: ${focusMins}m\n\n## Tasks\n` + tasks.map(t => `- [${t.done?'x':' '}] ${t.text}`).join('\n');
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' })); a.download = `focusflow-${date}.md`; a.click();
-
-        
-            <button class="mode-btn" onclick="setMode(15, this)">Long Break (15m)</button>
-        </div>
-        <div class="ring-area">
-            <svg class="ring" width="210" height="210">
-                <defs><linearGradient id="aiGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#38bdf8" /><stop offset="100%" stop-color="#a855f7" /></linearGradient></defs>
-                <circle class="ring-bg" stroke-width="10" r="92" cx="105" cy="105" />
-                <circle class="ring-fg" id="ringFg" stroke-width="10" r="92" cx="105" cy="105" />
-            </svg>
-            <div class="time-display" id="display">25:00</div>
-            <div class="active-task-label" id="pinnedLabel">No active task pinned</div>
-        </div>
-        <div class="controls">
-            <button class="btn-main" id="startBtn" onclick="toggleTimer()">▶ Start Focus</button>
-            <button class="btn-sec" onclick="resetTimer()">↺ Reset</button>
-        </div>
-        <div class="ai-banner zen-hide">
-            <span>🤖</span>
-            <span id="coachMsg"><strong>AI Coach:</strong> Press <b>Space</b> to start/pause, or type a goal and hit <b>✨ AI Split</b>.</span>
-        </div>
-        <div class="input-row zen-hide">
-            <input type="text" id="taskInput" placeholder="Add a goal or task..." onkeypress="if(event.key==='Enter') addTask()">
-            <button class="btn-sec" onclick="addTask()" style="padding:0 0.9rem;">+</button>
-            <button class="btn-ai" onclick="aiSplit()">✨ AI Split</button>
-        </div>
-        <ul class="tasks zen-hide" id="taskList"></ul>
-        <div class="footer-bar zen-hide">
-            <span>Shortcut: <strong>Space</strong> = Start/Pause</span>
-            <button class="tool-btn" onclick="exportMarkdown()">📥 Export .md</button>
-        </div>
-    </div>
-    <script>
-        let totalSecs = 1500, time = 1500, currentMins = 25, timerId = null, pinnedIdx = -1, audioCtx = null;
-        let sessions = parseInt(localStorage.getItem('ff4_sessions') || '0');
-        let focusMins = parseInt(localStorage.getItem('ff4_mins') || '0');
-        let tasks = JSON.parse(localStorage.getItem('ff4_tasks') || '[]');
-        const ring = document.getElementById('ringFg'), circ = 2 * Math.PI * 92;
-        ring.style.strokeDasharray = `${circ} ${circ}`;
-
-        function updateUI() {
-            const m = Math.floor(time / 60).toString().padStart(2, '0'), s = (time % 60).toString().padStart(2, '0');
-            document.getElementById('display').textContent = `${m}:${s}`;
-            document.title = `${m}:${s} — FocusFlow AI`;
-            ring.style.strokeDashoffset = circ - ((time / totalSecs) * circ);
-            document.getElementById('statSessions').textContent = sessions;
-            document.getElementById('statMinutes').textContent = `${focusMins}m`;
-            document.getElementById('statTasks').textContent = `${tasks.filter(t => t.done).length}/${tasks.length}`;
-            document.getElementById('goalFill').style.width = `${Math.min(100, (sessions / 4) * 100)}%`;
-            document.getElementById('pinnedLabel').textContent = (pinnedIdx >= 0 && tasks[pinnedIdx]) ? `📌 ${tasks[pinnedIdx].text}` : 'No active task pinned';
-        }
-        function setMode(mins, btn) {
-            stopTimer(); currentMins = mins; totalSecs = mins * 60; time = totalSecs;
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active'); updateUI();
-            coach(mins === 25 ? "Deep Focus mode armed. Pin a task with 📌." : "Break mode active. Rest your eyes.");
-        }
-        function toggleTimer() {
-            if (timerId) { stopTimer(); coach("Session paused."); return; }
-            document.getElementById('startBtn').textContent = "⏸ Pause";
-            coach("Focus timer running. Stay in flow!");
-            timerId = setInterval(() => {
-                if (time > 0) { time--; updateUI(); }
-                else {
-                    stopTimer(); chime();
-                    if (currentMins === 25) {
-                        sessions++; focusMins += 25;
-                        localStorage.setItem('ff4_sessions', sessions); localStorage.setItem('ff4_mins', focusMins);
-                        coach(`🎉 Session #${sessions} complete!`);
-                    } else coach("Break finished!");
-                    updateUI();
-                }
-            }, 1000);
-        }
-        function stopTimer() { clearInterval(timerId); timerId = null; document.getElementById('startBtn').textContent = "▶ Start Focus"; }
-        function resetTimer() { stopTimer(); time = totalSecs; updateUI(); }
-        function chime() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-                const o = ctx.createOscillator(), g = ctx.createGain();
-                o.type = 'triangle'; o.frequency.setValueAtTime(f, ctx.currentTime + i * 0.12);
-                g.gain.setValueAtTime(0.14, ctx.currentTime + i * 0.12); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.45);
-                o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.45);
-            });
-        }
-        function changeSound(type) {
-            if (audioCtx) { audioCtx.close(); audioCtx = null; }
-            if (type === 'off') { coach("Ambient sound off."); return; }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const size = 2 * audioCtx.sampleRate, buf = audioCtx.createBuffer(1, size, audioCtx.sampleRate), data = buf.getChannelData(0);
-            let last = 0, b0=0, b1=0, b2=0;
-            for (let i = 0; i < size; i++) {
-                const w = Math.random() * 2 - 1;
-                if (type === 'brown') { data[i] = (last + 0.02 * w) / 1.02; last = data[i]; data[i] *= 0.18; }
-                else { b0 = 0.99765*b0 + w*0.099046; b1 = 0.963*b1 + w*0.2965164; b2 = 0.57*b2 + w*1.0526913; data[i] = (b0+b1+b2+w*0.1848)*0.04; }
+            if (task.id === state.pinnedTaskId) {
+              const badge = document.createElement('span');
+              badge.className = 'mini-tag pinned';
+              badge.textContent = '📌 Active';
+              meta.append(badge);
             }
-            const src = audioCtx.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(audioCtx.destination); src.start(0);
-            coach(type === 'brown' ? "🎧 Deep Brown Noise active." : "🌧️ Soft Rain soundscape active.");
+            body.append(meta);
+          }
+          const tools = document.createElement('div');
+          tools.className = 'task-tools';
+          if (!task.done) {
+            tools.append(taskTool('📌', task.id === state.pinnedTaskId ? 'Unpin task' : 'Pin task', () => pinTask(task.id), task.id === state.pinnedTaskId ? 'is-pinned' : ''));
+            if (!task.micro) tools.append(taskTool('✨', 'Split this task into three time-boxed steps', () => splitGoal(task.text, task.id)));
+          }
+          tools.append(taskTool('×', 'Delete task', () => removeTask(task.id), 'remove'));
+          li.append(checkbox, body, tools);
+          el.taskList.append(li);
         }
-        function coach(html) { document.getElementById('coachMsg').innerHTML = `<strong>AI Coach:</strong> ${html}`; }
-        function aiSplit() {
-            const inp = document.getElementById('taskInput'), val = inp.value.trim();
-            if (!val) { coach("Type a task first, then click <b>✨ AI Split</b>!"); return; }
-            [`[10m] Plan & setup: ${val}`, `[25m] Core deep-work sprint: ${val}`, `[10m] Review & finalize: ${val}`].forEach(p => tasks.push({ text: p, done: false }));
-            inp.value = ''; saveTasks(); coach(`✨ AI broke "<b>${val}</b>" into 3 micro-tasks!`);
+      }
+
+      // AUDIO: procedurally synthesized buffers, looped with Web Audio nodes.
+      // Nothing is fetched or streamed; audio is constructed locally at runtime.
+      let audioContext = null;
+      let ambientSource = null;
+      let ambientGain = null;
+      let soundGeneration = 0;
+      async function enableAudio() {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) throw new Error('Web Audio not supported');
+        if (!audioContext) audioContext = new AudioCtor();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        return audioContext;
+      }
+      function synthesizedNoise(context, kind) {
+        const length = Math.floor(context.sampleRate * 8);
+        const buffer = context.createBuffer(2, length, context.sampleRate);
+        for (let c = 0; c < 2; c++) {
+          const samples = buffer.getChannelData(c);
+          let brown = 0;
+          let previous = 0;
+          let splash = 0;
+          for (let i = 0; i < length; i++) {
+            const white = Math.random() * 2 - 1;
+            if (kind === 'brown') {
+              brown = (brown + white * .025) / 1.025;
+              samples[i] = Math.max(-1, Math.min(1, brown * 3.5));
+            } else {
+              if (Math.random() < .00018) splash = .36 + Math.random() * .24;
+              splash *= .998;
+              const swell = .75 + .14 * Math.sin(i / context.sampleRate * 2 * Math.PI * .33 + c);
+              samples[i] = Math.max(-1, Math.min(1, (white * .46 + previous * .22) * swell + splash * white));
+              previous = white;
+            }
+          }
         }
-        function saveTasks() {
-            localStorage.setItem('ff4_tasks', JSON.stringify(tasks));
-            const ul = document.getElementById('taskList'); ul.innerHTML = '';
-            tasks.forEach((t, i) => {
-                const li = document.createElement('li');
-                li.className = `task-item ${t.done ? 'done' : ''} ${i === pinnedIdx ? 'pinned' : ''}`;
-                li.innerHTML = `<span class="txt" onclick="tasks[${i}].done=!tasks[${i}].done;saveTasks();" style="cursor:pointer;flex:1;">${t.text}</span><div class="task-actions"><button class="mini-btn" onclick="pinnedIdx=(pinnedIdx===${i}?-1:${i});saveTasks();">📌</button><button class="mini-btn" onclick="if(pinnedIdx===${i})pinnedIdx=-1;tasks.splice(${i},1);saveTasks();" style="color:#ef4444;">✕</button></div>`;
-                ul.appendChild(li);
-            });
-            updateUI();
+        return buffer;
+      }
+      function silenceAmbient() {
+        if (ambientGain && audioContext) {
+          const current = audioContext.currentTime;
+          ambientGain.gain.cancelScheduledValues(current);
+          ambientGain.gain.setValueAtTime(ambientGain.gain.value, current);
+          ambientGain.gain.linearRampToValueAtTime(.0001, current + .18);
+          if (ambientSource) {
+            const old = ambientSource;
+            old.onended = () => { try { old.disconnect(); } catch {} };
+            try { old.stop(current + .22); } catch {}
+          }
         }
-        function addTask() { const inp = document.getElementById('taskInput'); if (!inp.value.trim()) return; tasks.push({ text: inp.value.trim(), done: false }); inp.value = ''; saveTasks(); }
-        function exportMarkdown() {
-            const date = new Date().toISOString().split('T');
-            let md = `# FocusFlow AI Summary (${date})\n- Sessions: ${sessions}\n- Deep Work: ${focusMins}m\n\n## Tasks\n` + tasks.map(t => `- [${t.done?'x':' '}] ${t.text}`).join('\n');
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' })); a.download = `focusflow-${date}.md`; a.click();
+        ambientSource = null;
+        ambientGain = null;
+      }
+      async function changeSoundscape(kind) {
+        const token = ++soundGeneration;
+        silenceAmbient();
+        if (kind === 'off') { notify('Soundscape off'); return; }
+        try {
+          const context = await enableAudio();
+          if (token !== soundGeneration) return;
+          const source = context.createBufferSource();
+          const filter = context.createBiquadFilter();
+          const gain = context.createGain();
+          source.buffer = synthesizedNoise(context, kind);
+          source.loop = true;
+          filter.type = kind === 'brown' ? 'lowpass' : 'bandpass';
+          filter.frequency.value = kind === 'brown' ? 650 : 1700;
+          filter.Q.value = kind === 'brown' ? .4 : .23;
+          gain.gain.value = .0001;
+          source.connect(filter);
+          filter.connect(gain);
+          gain.connect(context.destination);
+          const now = context.currentTime;
+          gain.gain.linearRampToValueAtTime(kind === 'brown' ? .26 : .22, now + .5);
+          source.start();
+          ambientSource = source;
+          ambientGain = gain;
+          coach(kind === 'brown' ? 'Deep brown noise is on. Let the low, steady sound mask distractions.' : 'Soft rain is on. Settle in and let the background fade away.');
+          notify(kind === 'brown' ? '♫ Deep Brown Noise playing' : '🌧 Soft Rain playing');
+        } catch {
+          el.soundscape.value = 'off';
+          notify('Audio is unavailable in this browser.');
         }
-        document.addEventListener('keydown', (e) => { if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); toggleTimer(); } });
-        saveTasks();
-    </script>
+      }
+      function playChime() {
+        if (!audioContext || audioContext.state !== 'running') return;
+        const ctx = audioContext;
+        const now = ctx.currentTime;
+        [659.25, 987.77, 1318.51].forEach((frequency, index) => {
+          const t = now + index * .14;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(frequency, t);
+          gain.gain.setValueAtTime(.0001, t);
+          gain.gain.exponentialRampToValueAtTime(.075, t + .035);
+          gain.gain.exponentialRampToValueAtTime(.0001, t + .85);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + .9);
+          osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+        });
+      }
+
+      // EXPORT: a real local Markdown file with current-day stats and checklist.
+      function exportMarkdown() {
+        const date = today();
+        const stats = dayStats(date);
+        const safeLine = text => String(text).replace(/[\r\n]+/g, ' ').replace(/\\/g, '\\\\').replace(/([\[\]*_`])/g, '\\$1');
+        const lines = [
+          '# FocusFlow AI — Daily Summary', '', `**Date:** ${date}`, '',
+          '## Today at a glance', '',
+          `- Completed focus sessions: **${stats.sessions}**`,
+          `- Deep work minutes: **${stats.minutes}**`,
+          `- Completed tasks today: **${stats.tasks}**`,
+          `- Daily goal: **${state.goalMinutes} minutes**`,
+          `- Goal achieved: **${Math.round(stats.minutes / state.goalMinutes * 100)}%**`, '',
+          '## Task checklist', ''
+        ];
+        if (state.tasks.length === 0) lines.push('_No tasks recorded yet._');
+        else for (const task of state.tasks) {
+          const timebox = task.estimate ? ` [${task.estimate}m]` : '';
+          lines.push(`- [${task.done ? 'x' : ' '}] ${safeLine(task.text)}${timebox}${task.id === state.pinnedTaskId ? ' 📌' : ''}`);
+        }
+        lines.push('', '---', '_Created locally with FocusFlow AI — Deep Work Suite._', '');
+        const file = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(file);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `focusflow-summary-${date}.md`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        notify('📥 Markdown summary downloaded');
+      }
+
+      // EVENTS
+      el.themeToggle.addEventListener('click', () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; save(); renderTheme(); });
+      el.zenToggle.addEventListener('click', () => { state.zen = !state.zen; save(); renderZen(); notify(state.zen ? '⛶ Zen Mode on' : '⛶ Zen Mode off'); });
+      el.goalInput.addEventListener('change', () => {
+        const value = Number(el.goalInput.value);
+        if (!Number.isFinite(value) || value < 5 || value > 1440) { el.goalInput.value = String(state.goalMinutes); notify('Choose a goal between 5 and 1440 minutes.'); return; }
+        state.goalMinutes = Math.round(value);
+        save(); renderStats(); coach(coachDefault());
+      });
+      document.querySelectorAll('.mode-button').forEach(button => button.addEventListener('click', () => setMode(button.dataset.mode)));
+      el.startPause.addEventListener('click', () => running ? pauseTimer() : startTimer());
+      el.resetTimer.addEventListener('click', resetTimer);
+      document.addEventListener('keydown', event => {
+        if (event.code !== 'Space' || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.target instanceof Element && event.target.closest('button, input, textarea, select, a, [contenteditable="true"]')) return;
+        event.preventDefault();
+        running ? pauseTimer() : startTimer();
+      });
+      el.soundscape.addEventListener('change', () => changeSoundscape(el.soundscape.value));
+      el.taskForm.addEventListener('submit', event => { event.preventDefault(); addTask(el.taskInput.value); });
+      el.splitInput.addEventListener('click', () => splitGoal(el.taskInput.value));
+      el.exportMarkdown.addEventListener('click', exportMarkdown);
+      document.addEventListener('visibilitychange', () => {
+        if (running && !document.hidden) {
+          remainingMs = Math.max(0, deadline - Date.now());
+          if (remainingMs === 0) finishTimer();
+          else renderTimer();
+        }
+      });
+      // A date boundary updates daily analytics even if the page stays open overnight.
+      let displayedDate = today();
+      setInterval(() => {
+        if (today() !== displayedDate) {
+          displayedDate = today();
+          renderStats();
+          coach(coachDefault());
+        }
+        if (running && remainingMs > 0 && Date.now() >= deadline) finishTimer();
+      }, 1000);
+
+      // INIT
+      el.ringProgress.style.strokeDasharray = String(CIRCUMFERENCE);
+      renderTheme();
+      renderZen();
+      renderStats();
+      renderTasks();
+      renderTimer();
+      coach(coachDefault());
+    })();
+  </script>
 </body>
 </html>
