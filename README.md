@@ -1,18 +1,35 @@
-# Focus Timer & Task List
+# FocusFlow — Open Source Productivity & Pomodoro Suite
 
-A clean, lightweight, and open-source Pomodoro timer paired with a simple task list. Built to help you stay focused without distractions.
+[![License: MIT](https://shields.io)](https://opensource.org)
+[![Live Demo](https://shields.io)](https://github.io)
 
-**Live Demo:** [https://github.io](https://github.io)
+**FocusFlow** is a zero-dependency, lightweight web application combining a customizable Pomodoro timer with persistent task management. Designed for developers, students, and deep-work enthusiasts who want a fast, privacy-first productivity tool without accounts or tracking.
 
-## Features
-- **25-Minute Pomodoro Timer:** Start, pause, and reset with a single click.
-- **Built-in Task List:** Quickly add tasks and click them to mark as completed.
-- **Zero Dependencies:** Runs directly in any modern web browser with pure HTML, CSS, and JavaScript.
+## Key Features
+- **Multi-Mode Timer:** Switch seamlessly between **Focus (25m)**, **Short Break (5m)**, and **Long Break (15m)**.
+- **Persistent Storage (`localStorage`):** Automatically saves your tasks and completed focus session statistics locally in your browser.
+- **Web Audio API Alerts:** Built-in synthesized sound notification when a timer finishes—no external audio files required.
+- **Keyboard Friendly:** Add tasks quickly by pressing `Enter` and track progress in the browser tab title.
+- **Zero Dependencies:** 100% vanilla HTML5, CSS3, and ES6+ JavaScript.
 
-## Usage
-1. Open the [live web app](https://github.io) or open `index.html` in your browser.
-2. Type a task in the input field and click `+`.
-3. Click **Start** to begin your focus session.
+## Quick Start
+Visit the live deployment directly:  
+👉 **[https://github.io](https://github.io)**
+
+Or run it locally:
+```bash
+git clone https://github.com
+cd focus-timer-app
+open index.html
+```
+
+## Roadmap
+- [ ] Custom timer duration settings
+- [ ] Light / Dark theme toggle
+- [ ] Export completed tasks to Markdown or CSV
 
 ## Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page or submit a pull request.
+Contributions are welcome! Feel free to fork this repository, open an issue for bug reports or feature requests, or submit a pull request.
+
+## License
+Distributed under the MIT License. See `LICENSE` for more information.
