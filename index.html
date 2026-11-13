@@ -246,3 +246,129 @@
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' })); a.download = `focusflow-${date}.md`; a.click();
 
         
+            <button class="mode-btn" onclick="setMode(15, this)">Long Break (15m)</button>
+        </div>
+        <div class="ring-area">
+            <svg class="ring" width="210" height="210">
+                <defs><linearGradient id="aiGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#38bdf8" /><stop offset="100%" stop-color="#a855f7" /></linearGradient></defs>
+                <circle class="ring-bg" stroke-width="10" r="92" cx="105" cy="105" />
+                <circle class="ring-fg" id="ringFg" stroke-width="10" r="92" cx="105" cy="105" />
+            </svg>
+            <div class="time-display" id="display">25:00</div>
+            <div class="active-task-label" id="pinnedLabel">No active task pinned</div>
+        </div>
+        <div class="controls">
+            <button class="btn-main" id="startBtn" onclick="toggleTimer()">▶ Start Focus</button>
+            <button class="btn-sec" onclick="resetTimer()">↺ Reset</button>
+        </div>
+        <div class="ai-banner zen-hide">
+            <span>🤖</span>
+            <span id="coachMsg"><strong>AI Coach:</strong> Press <b>Space</b> to start/pause, or type a goal and hit <b>✨ AI Split</b>.</span>
+        </div>
+        <div class="input-row zen-hide">
+            <input type="text" id="taskInput" placeholder="Add a goal or task..." onkeypress="if(event.key==='Enter') addTask()">
+            <button class="btn-sec" onclick="addTask()" style="padding:0 0.9rem;">+</button>
+            <button class="btn-ai" onclick="aiSplit()">✨ AI Split</button>
+        </div>
+        <ul class="tasks zen-hide" id="taskList"></ul>
+        <div class="footer-bar zen-hide">
+            <span>Shortcut: <strong>Space</strong> = Start/Pause</span>
+            <button class="tool-btn" onclick="exportMarkdown()">📥 Export .md</button>
+        </div>
+    </div>
+    <script>
+        let totalSecs = 1500, time = 1500, currentMins = 25, timerId = null, pinnedIdx = -1, audioCtx = null;
+        let sessions = parseInt(localStorage.getItem('ff4_sessions') || '0');
+        let focusMins = parseInt(localStorage.getItem('ff4_mins') || '0');
+        let tasks = JSON.parse(localStorage.getItem('ff4_tasks') || '[]');
+        const ring = document.getElementById('ringFg'), circ = 2 * Math.PI * 92;
+        ring.style.strokeDasharray = `${circ} ${circ}`;
+
+        function updateUI() {
+            const m = Math.floor(time / 60).toString().padStart(2, '0'), s = (time % 60).toString().padStart(2, '0');
+            document.getElementById('display').textContent = `${m}:${s}`;
+            document.title = `${m}:${s} — FocusFlow AI`;
+            ring.style.strokeDashoffset = circ - ((time / totalSecs) * circ);
+            document.getElementById('statSessions').textContent = sessions;
+            document.getElementById('statMinutes').textContent = `${focusMins}m`;
+            document.getElementById('statTasks').textContent = `${tasks.filter(t => t.done).length}/${tasks.length}`;
+            document.getElementById('goalFill').style.width = `${Math.min(100, (sessions / 4) * 100)}%`;
+            document.getElementById('pinnedLabel').textContent = (pinnedIdx >= 0 && tasks[pinnedIdx]) ? `📌 ${tasks[pinnedIdx].text}` : 'No active task pinned';
+        }
+        function setMode(mins, btn) {
+            stopTimer(); currentMins = mins; totalSecs = mins * 60; time = totalSecs;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active'); updateUI();
+            coach(mins === 25 ? "Deep Focus mode armed. Pin a task with 📌." : "Break mode active. Rest your eyes.");
+        }
+        function toggleTimer() {
+            if (timerId) { stopTimer(); coach("Session paused."); return; }
+            document.getElementById('startBtn').textContent = "⏸ Pause";
+            coach("Focus timer running. Stay in flow!");
+            timerId = setInterval(() => {
+                if (time > 0) { time--; updateUI(); }
+                else {
+                    stopTimer(); chime();
+                    if (currentMins === 25) {
+                        sessions++; focusMins += 25;
+                        localStorage.setItem('ff4_sessions', sessions); localStorage.setItem('ff4_mins', focusMins);
+                        coach(`🎉 Session #${sessions} complete!`);
+                    } else coach("Break finished!");
+                    updateUI();
+                }
+            }, 1000);
+        }
+        function stopTimer() { clearInterval(timerId); timerId = null; document.getElementById('startBtn').textContent = "▶ Start Focus"; }
+        function resetTimer() { stopTimer(); time = totalSecs; updateUI(); }
+        function chime() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'triangle'; o.frequency.setValueAtTime(f, ctx.currentTime + i * 0.12);
+                g.gain.setValueAtTime(0.14, ctx.currentTime + i * 0.12); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.45);
+                o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.45);
+            });
+        }
+        function changeSound(type) {
+            if (audioCtx) { audioCtx.close(); audioCtx = null; }
+            if (type === 'off') { coach("Ambient sound off."); return; }
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const size = 2 * audioCtx.sampleRate, buf = audioCtx.createBuffer(1, size, audioCtx.sampleRate), data = buf.getChannelData(0);
+            let last = 0, b0=0, b1=0, b2=0;
+            for (let i = 0; i < size; i++) {
+                const w = Math.random() * 2 - 1;
+                if (type === 'brown') { data[i] = (last + 0.02 * w) / 1.02; last = data[i]; data[i] *= 0.18; }
+                else { b0 = 0.99765*b0 + w*0.099046; b1 = 0.963*b1 + w*0.2965164; b2 = 0.57*b2 + w*1.0526913; data[i] = (b0+b1+b2+w*0.1848)*0.04; }
+            }
+            const src = audioCtx.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(audioCtx.destination); src.start(0);
+            coach(type === 'brown' ? "🎧 Deep Brown Noise active." : "🌧️ Soft Rain soundscape active.");
+        }
+        function coach(html) { document.getElementById('coachMsg').innerHTML = `<strong>AI Coach:</strong> ${html}`; }
+        function aiSplit() {
+            const inp = document.getElementById('taskInput'), val = inp.value.trim();
+            if (!val) { coach("Type a task first, then click <b>✨ AI Split</b>!"); return; }
+            [`[10m] Plan & setup: ${val}`, `[25m] Core deep-work sprint: ${val}`, `[10m] Review & finalize: ${val}`].forEach(p => tasks.push({ text: p, done: false }));
+            inp.value = ''; saveTasks(); coach(`✨ AI broke "<b>${val}</b>" into 3 micro-tasks!`);
+        }
+        function saveTasks() {
+            localStorage.setItem('ff4_tasks', JSON.stringify(tasks));
+            const ul = document.getElementById('taskList'); ul.innerHTML = '';
+            tasks.forEach((t, i) => {
+                const li = document.createElement('li');
+                li.className = `task-item ${t.done ? 'done' : ''} ${i === pinnedIdx ? 'pinned' : ''}`;
+                li.innerHTML = `<span class="txt" onclick="tasks[${i}].done=!tasks[${i}].done;saveTasks();" style="cursor:pointer;flex:1;">${t.text}</span><div class="task-actions"><button class="mini-btn" onclick="pinnedIdx=(pinnedIdx===${i}?-1:${i});saveTasks();">📌</button><button class="mini-btn" onclick="if(pinnedIdx===${i})pinnedIdx=-1;tasks.splice(${i},1);saveTasks();" style="color:#ef4444;">✕</button></div>`;
+                ul.appendChild(li);
+            });
+            updateUI();
+        }
+        function addTask() { const inp = document.getElementById('taskInput'); if (!inp.value.trim()) return; tasks.push({ text: inp.value.trim(), done: false }); inp.value = ''; saveTasks(); }
+        function exportMarkdown() {
+            const date = new Date().toISOString().split('T');
+            let md = `# FocusFlow AI Summary (${date})\n- Sessions: ${sessions}\n- Deep Work: ${focusMins}m\n\n## Tasks\n` + tasks.map(t => `- [${t.done?'x':' '}] ${t.text}`).join('\n');
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' })); a.download = `focusflow-${date}.md`; a.click();
+        }
+        document.addEventListener('keydown', (e) => { if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); toggleTimer(); } });
+        saveTasks();
+    </script>
+</body>
+</html>
